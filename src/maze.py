@@ -1,8 +1,9 @@
 from strokes import Point, Line
 from time import sleep
+from random import seed, randint
 
 class Maze:
-    def __init__(self, x, y, rows_count, cols_count, cell_size_x, cell_size_y, window=None):
+    def __init__(self, x, y, rows_count, cols_count, cell_size_x, cell_size_y, window=None, seed=None):
         self.x = x
         self.y = y
         self.rows_count = int(rows_count)
@@ -10,8 +11,48 @@ class Maze:
         self.cell_size_x = cell_size_x
         self.cell_size_y = cell_size_y
         self.window = window
+        self.__seed = seed
         self.maze = [[None]*self.cols_count for _ in range(self.rows_count)]
         self.__create_cells()
+        self.__break_entrance_and_exit()
+        print(self.__cross((0, 4), "right"))
+        
+    # tested!
+    def __break_entrance_and_exit(self):
+        first_cell, last_cell = [self.maze[0][0], self.maze[-1][-1]]
+        first_cell.toggle_wall(randint(0, 1))
+        last_cell.toggle_wall(randint(2, 3), visit=False)
+    
+    # tested!
+    def __coordinates_valid(self, row_idx, col_idx):
+        if row_idx in range(self.rows_count) and col_idx in range(self.cols_count):
+            return True
+        return False
+
+    # tested!
+    def __cross(self, coordinates, direction):
+        row_idx, col_idx = coordinates
+        if type(direction) == str:
+            idx_dict = { "l": 0, "u": 1, "r": 2, "d": 3 }
+            break_at_idx= idx_dict.get(direction[0], None)
+        elif type(direction) == int:
+            break_at_idx= direction 
+        if break_at_idx == None:
+            raise ValueError("invalid direction")
+        if self.__coordinates_valid(*coordinates):
+            new_coordinates = [(row_idx, col_idx-1), (row_idx-1, col_idx), (row_idx, col_idx+1), (row_idx+1, col_idx)][break_at_idx]
+        if self.__coordinates_valid(*new_coordinates):
+            self.maze[row_idx][col_idx].toggle_wall(break_at_idx)
+            new_row_idx, new_col_idx = new_coordinates
+            self.maze[new_row_idx][new_col_idx].toggle_wall((break_at_idx+2)%4)
+            return new_coordinates
+        return None
+
+    # ? test
+    def __mazefy(self):
+        if self.__seed != None:
+            seed(self.__seed)
+        
 
     def __create_cells(self):
         # populating
@@ -47,6 +88,7 @@ class Cell:
     def __init__(self, x, y, window=None, size=0):
         self.size = size or Cell.__size
         self.has_wall_left_clockwise = [True] * 4
+        self.visited = False
         corners = [
             Point(x, y),
             Point(x+self.size, y),
@@ -62,10 +104,11 @@ class Cell:
         if self.__window == None:
             return
         for i in range(4):
-            if self.has_wall_left_clockwise[i]:
-                self.__window.draw_line(self.__wall_lines[i])
+            clr = self.has_wall_left_clockwise[i] and "black" or "#d9d9d9"
+            self.__window.draw_line(self.__wall_lines[i], clr)
+                
     
-    def toggle_wall(self, *keys):
+    def toggle_wall(self, *keys, visit=True):
         keys = set(keys)
         for key in keys:
             idx = None
@@ -76,6 +119,9 @@ class Cell:
                 idx = key 
             if idx != None:
                 self.has_wall_left_clockwise[idx%4] = not self.has_wall_left_clockwise[idx%4]
+        if visit:
+            self.visited = True
+        self.draw()
 
     def __get_centre_p(self):
         return Point(self.__x+.5*self.size, self.__y+.5*self.size)
