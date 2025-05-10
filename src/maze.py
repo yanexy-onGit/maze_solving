@@ -24,6 +24,10 @@ class Maze:
             y += self.cell_size_y
 
         # drawing
+        if self.window == None:
+            print("skip drawing of maze: no window object provided")
+            return
+        
         for i in range(self.rows_count):
             for j in range(self.cols_count):
                 self.maze[i][j].draw()
@@ -55,6 +59,8 @@ class Cell:
         self.__y = y
 
     def draw(self):
+        if self.__window == None:
+            return
         for i in range(4):
             if self.has_wall_left_clockwise[i]:
                 self.__window.draw_line(self.__wall_lines[i])

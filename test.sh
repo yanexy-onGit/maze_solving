@@ -1,0 +1,1 @@
+PYTHONPATH=$PYTHONPATH:. python3 -m unittest src.tests
