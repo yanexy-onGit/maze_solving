@@ -1,4 +1,5 @@
 from tkinter import Tk, BOTH, Canvas
+from time import sleep
 
 class Window:
     def __init__(self, width, height):
@@ -15,6 +16,9 @@ class Window:
     
     def wait_for_close(self):
         self.__running = True
+        # self.redraw()
+        # sleep(1.5)
+        # self.close()
         while self.__running:
             self.redraw()
         print("window closed ...")
