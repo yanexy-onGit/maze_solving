@@ -20,8 +20,9 @@ class Maze:
 
     # ? discard
     def reset(self):
-        self.maze = [[None]*self.cols_count for _ in range(self.rows_count)]
-        self.__create_cells()
+        for row in self.maze:
+            for cell in row:
+                cell.set_unvisited()
 
     def cell_at(self, coordinates):
         if not self.__coordinates_valid(*coordinates):
@@ -68,9 +69,6 @@ class Maze:
             raise Exception("cells to be crossed between must be adjacent")
         return self.__cross_by_direction(coords_from, direction=direction)
 
-    def __undo_cross(self, coords_from, coords_to):
-        pass
-
     # ? test
     def cell_adjacents(self, coordinates, ignore_visited=False):
         row_idx, col_idx = coordinates
@@ -84,7 +82,7 @@ class Maze:
         if coordinates == (self.rows_count-1, self.cols_count-1):
             return 0
         adjacents = self.cell_adjacents(coordinates, ignore_visited=True)
-        print(f"{coordinates} adjacents are: {adjacents}")
+        # print(f"{coordinates} adjacents are: {adjacents}")
         if not adjacents:
             return -1
         shuffle(adjacents)
@@ -118,8 +116,6 @@ class Maze:
             shuffle(adjacents)
             self.__cross(unvisited[0], adjacents[0])
 
-
-
     # ? test
     def __mazefy(self):
         if self.__seed != None:
@@ -127,7 +123,55 @@ class Maze:
         res = self.create_solution_from((0, 0))
         print(res)
         self.scramble()
+        self.reset()
+
+    def enterables_from(self, coordinates):
+        row_idx, col_idx = coordinates
+        cell = self.cell_at(coordinates)
+        directions_available = []
+        for i in range(len(cell.has_wall_left_clockwise)):
+            if not cell.has_wall_left_clockwise[i]:
+                directions_available.append(i)
+        coords_open = []
+        for direction in directions_available:
+            coords_open.append(
+                [(row_idx, col_idx-1), (row_idx-1, col_idx), (row_idx, col_idx+1), (row_idx+1, col_idx)][direction]
+            )
+        coords_open = [coords for coords in coords_open if self.__coordinates_valid(*coords)]
+        coords_open = [coords for coords in coords_open if not self.cell_at(coords).visited]
+        return coords_open
+
+    def sort_adjacents_towards_opposite_corner(self, coordinates, adjacents):
+        row_idx, col_idx = coordinates
+        def prio_lvl(coords):
+            prioritize_down = self.rows_count - row_idx < self.cols_count - col_idx
+            if coords == (row_idx+1, col_idx):
+                return 2
+            if coords == (row_idx, col_idx+1):
+                if prioritize_down:
+                    return 3
+                return 1
+            return 0
+        adjacents.sort(key=prio_lvl, reverse=True)
         
+    def __solve_from(self, coordinates):
+        self.__animate()
+        cell = self.cell_at(coordinates)
+        cell.set_visited()
+        if coordinates == (self.rows_count-1, self.cols_count-1):
+            return True
+        enterables = self.enterables_from(coordinates)
+        self.sort_adjacents_towards_opposite_corner(coordinates, enterables)
+        for enterable_coords in enterables:
+            enterable_cell = self.cell_at(enterable_coords)
+            cell.draw_move(enterable_cell)
+            if self.__solve_from(enterable_coords):
+                return True
+            cell.draw_move(enterable_cell, undo=True)
+        return False
+
+    def solve(self):
+        return self.__solve_from((0, 0))
 
     def __create_cells(self):
         # populating
@@ -149,7 +193,6 @@ class Maze:
                 self.maze[i][j].draw()
                 
         self.__animate()
-    
 
     def __animate(self):
         self.window.redraw()
@@ -200,6 +243,9 @@ class Cell:
         self.has_wall_left_clockwise = [True] * 4
         self.draw()
     
+    def set_visited(self):
+        self.visited = True
+
     def set_unvisited(self):
         self.visited = False
 
@@ -207,5 +253,5 @@ class Cell:
         return Point(self.__x+.5*self.size, self.__y+.5*self.size)
     
     def draw_move(self, to_cell, undo=False):
-        clr = (undo and "red") or "gray"
+        clr = (undo and "gray") or "red"
         self.__window.draw_line(Line(self.__get_centre_p(), to_cell.__get_centre_p()), clr)

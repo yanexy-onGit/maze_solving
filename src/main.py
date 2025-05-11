@@ -3,16 +3,13 @@ from strokes import Point, Line
 from maze import Maze
 
 def main():
-    ONE_SIZE = 1200
+    ONE_SIZE = 1000
     WIN_WIDTH = ONE_SIZE or 450
     WIN_HEIGHT = ONE_SIZE or 450
     CELL_SIZE = 50
-    top_left = Point(0, 0)
-    top_right = Point(WIN_WIDTH, 0)
-    bottom_right = Point(WIN_WIDTH, WIN_HEIGHT)
-    bottom_left = Point(0, WIN_HEIGHT)
     win = Window(WIN_WIDTH, WIN_WIDTH)
-    Maze(1, 1, WIN_WIDTH/CELL_SIZE, WIN_HEIGHT/CELL_SIZE, 50, 50, win)
+    m = Maze(1, 1, WIN_WIDTH/CELL_SIZE, WIN_HEIGHT/CELL_SIZE, CELL_SIZE, CELL_SIZE, win)
+    print(m.solve())
     win.wait_for_close()
     
 
